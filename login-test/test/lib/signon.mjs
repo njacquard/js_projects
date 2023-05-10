@@ -44,14 +44,35 @@ function getUserInfo(user) {
     return pwdMap.get(user);
 }
 
+//:Purpose
+// send authenticated user credentials to user/pass fields
+//
+//:Arguments
+//  |0: selenium-webdriver
+//  |1: user
+//  |2: password
+//
+//:Local Variables
+//
+//:Returns
+// unimportant
 async function authenticate(driver, user, pwd) {
    await driver.findElement(By.id("username")).sendKeys(user);
    await driver.findElement(By.id("password")).sendKeys(pwd);
 }
 
-async function signoff(driver, dateTime) {
+//:Purpose
+// sign out of login
+//
+//:Arguments
+//  |0: selenium-webdriver
+//
+//:Local Variables
+//
+//:Returns
+// unimportant
+async function signoff(driver) {
     await driver.findElement(By.css(".wp-block-button__link")).click();
-    //await driver.quit();
 }
 
 export {

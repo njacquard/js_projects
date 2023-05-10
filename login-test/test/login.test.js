@@ -11,8 +11,7 @@ describe ("Login Page Test", () => {
     .forBrowser("chrome")
     .setChromeOptions(chromeOptions)
     .build();
-
-  const d = new Date();
+    
   const expectedSuccessMessage = 'Logged In Successfully';
   const expectedFailureMessages = ['Your username is invalid!', 'Your password is invalid!'];
   var actualResultMessage;
