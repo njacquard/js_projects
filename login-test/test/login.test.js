@@ -11,7 +11,7 @@ describe ("Login Page Test", () => {
     .forBrowser("chrome")
     .setChromeOptions(chromeOptions)
     .build();
-    
+
   const expectedSuccessMessage = 'Logged In Successfully';
   const expectedFailureMessages = ['Your username is invalid!', 'Your password is invalid!'];
   var actualResultMessage;
@@ -31,7 +31,7 @@ describe ("Login Page Test", () => {
       await doUserSignon(driver, 'student');
       actualResultMessage = await driver.findElement(By.className('post-title')).getText();
       await assert.deepEqual(actualResultMessage, expectedSuccessMessage);
-      await signoff(driver, d);
+      await signoff(driver);
     })
   });
 
