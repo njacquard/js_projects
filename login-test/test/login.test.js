@@ -17,7 +17,6 @@ describe ("Login Page Test", () => {
   var actualResultMessage;
 
   before (async () => {
-    // connect to URL
     let launchURL = 'https://practicetestautomation.com/practice-test-login/';
     await driver.get(launchURL);
   })
