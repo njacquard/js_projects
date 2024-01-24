@@ -1,6 +1,6 @@
 {
   "name": "login-test",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Login Page Test",
   "type": "module",
   "scripts": {
@@ -10,12 +10,12 @@
     "test": "./test"
   },
   "devDependencies": {
-    "chromedriver": "^109.0.0",
-    "mocha": "latest",
-    "selenium-webdriver": "^4.2.0"
+    "chromedriver": "^120.0.0",
+    "mocha": "10.2.0",
+    "selenium-webdriver": "^4.17.0"
   },
   "engines": {
-    "node": ">=10.0.0"
+    "node": ">=17.0.0"
   },
   "license": "ISC"
 }

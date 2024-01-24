@@ -6,7 +6,8 @@ import { before, after, describe, it } from 'mocha';
 import { signon, signoff } from './lib/libraries-export.mjs';
 
 describe ("Login Page Test", () => {
-  const chromeOptions = new chrome.Options().headless();
+  const chromeOptions = new chrome.Options();
+  chromeOptions.addArguments('--headless=new');
   const driver = new Builder(path)
     .forBrowser("chrome")
     .setChromeOptions(chromeOptions)
