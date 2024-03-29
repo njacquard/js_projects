@@ -1,4 +1,4 @@
-import { Builder, By, Key, Capabilities } from "selenium-webdriver";
+import { By } from "selenium-webdriver";
 import "chromedriver";
 
 //:Purpose
@@ -42,6 +42,18 @@ function getUserInfo(user) {
         ["incorrectPwd", {name: "student", pwd: "incorrectPassword" }]
     ]);
     return pwdMap.get(user);
+}
+
+//:Purpose
+//  get the given user's password
+//
+//:Arguments
+//  none
+//
+//:Returns
+// user info Object {"name", "pwd"}
+function getUserInfoFromEnvVariable() {
+    return { name: process.env.SELENIUM_CREDS_USR, pwd: process.env.SELENIUM_CREDS_PSW };
 }
 
 //:Purpose

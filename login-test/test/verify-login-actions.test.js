@@ -1,16 +1,12 @@
-import { Builder, Browser, By } from 'selenium-webdriver';
-import chrome from 'selenium-webdriver/chrome.js';
-import { path } from 'chromedriver';
+import { By } from 'selenium-webdriver';
 import assert from 'assert';
 import { before, after, describe, it } from 'mocha';
 import { signon, signoff } from './lib/libraries-export.mjs';
+import { CustomDriver } from './lib/driver-class.mjs';
 
 describe ("Login Page Test", () => {
-  const chromeOptions = new chrome.Options().headless();
-  const driver = new Builder(path)
-    .forBrowser("chrome")
-    .setChromeOptions(chromeOptions)
-    .build();
+  const customDriver = new CustomDriver();
+  const driver = customDriver.driver;
 
   const expectedSuccessMessage = 'Logged In Successfully';
   const expectedFailureMessages = ['Your username is invalid!', 'Your password is invalid!'];
