@@ -4,7 +4,7 @@ import { before, after, describe, it } from 'mocha';
 import { signon, signoff } from './lib/libraries-export.mjs';
 import { CustomDriver } from './lib/driver-class.mjs';
 
-describe ("Login Page Test", () => {
+describe ("Verify Login Actions - Practice Site", () => {
   const customDriver = new CustomDriver();
   const driver = customDriver.driver;
 
