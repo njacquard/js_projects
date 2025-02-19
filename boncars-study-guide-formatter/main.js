@@ -72,7 +72,8 @@ ipcMain.handle('process-document', async (event, { filePath, startWord, endWord,
           // Keep text before the start word
           const beforeStart = line.substring(0, startMatch.index);
           let remainingLine = line.substring(startMatch.index + startMatch[0].length);
-
+          
+          // If removeStartWord is false, include the start word in beforeStart
           const contentToKeep = removeStartWord ? 
             beforeStart : 
             beforeStart + startMatch[0];
@@ -86,8 +87,11 @@ ipcMain.handle('process-document', async (event, { filePath, startWord, endWord,
           const endMatch = remainingLine.match(endWordRegex);
           if (endMatch) {
             inRemovalRange = false;
-            const removedContent = line.substring(startMatch.index, 
-                                                 startMatch.index + startMatch[0].length + endMatch.index + endWord.length);
+            
+            // Calculate removed content (with or without start word)
+            const removedStartIndex = removeStartWord ? startMatch.index : startMatch.index + startMatch[0].length;
+            const removedContent = line.substring(removedStartIndex, 
+                                                 startMatch.index + startMatch[0].length + endMatch.index + endMatch[0].length);
             totalRemovedWords += countWords(removedContent);
             
             removedRanges.push({
@@ -96,12 +100,12 @@ ipcMain.handle('process-document', async (event, { filePath, startWord, endWord,
               content: removedContent
             });
             
-            // Add remaining content after end word
+            // Add remaining content after end word with a new line
             const afterEnd = remainingLine.substring(endMatch.index + endMatch[0].length);
-            cleanedLines.push(beforeStart + afterEnd);
+            cleanedLines.push(contentToKeep + afterEnd);
           } else {
             // End word not found in this line, keep the content before start word
-            cleanedLines.push(beforeStart);
+            cleanedLines.push(contentToKeep);
           }
         } else {
           // No start word in this line, keep it as is
@@ -120,12 +124,12 @@ ipcMain.handle('process-document', async (event, { filePath, startWord, endWord,
             content: `[Content from line ${currentRangeStart.line} to ${lineIndex + 1}]`
           });
           
-          // Keep text after the end word
+          // Keep text after the end word and add a new line
           const afterEnd = line.substring(endMatch.index + endMatch[0].length);
           cleanedLines.push(afterEnd);
           
           // Count removed words
-          totalRemovedWords += countWords(line.substring(0, endMatch.index + endMatch[0].length));
+          totalRemovedWords += countWords(line.substring(0, endMatch.index + endWord.length));
         } else {
           // Still in removal range, continue removing
           totalRemovedWords += countWords(line);
@@ -142,13 +146,19 @@ ipcMain.handle('process-document', async (event, { filePath, startWord, endWord,
       });
     }
 
-    // Create new document
+    // Create new document with line breaks
     const doc = new docx.Document({
       sections: [{
         properties: {},
-        children: cleanedLines.map(line => 
+        children: cleanedLines.filter(line => line !== '').map(line => 
           new docx.Paragraph({
-            children: [new docx.TextRun(line)]
+            spacing: {
+              before: 200
+            },
+            children: [new docx.TextRun(line)],
+            spacing: {
+              after: 200 // Add space after each paragraph
+            }
           })
         )
       }]
