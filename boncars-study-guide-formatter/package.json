@@ -1,6 +1,6 @@
 {
   "name": "study-guide-formatter",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Word document line range remover",
   "main": "main.js",
   "scripts": {

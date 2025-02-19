@@ -43,7 +43,7 @@ ipcMain.handle('select-file', async () => {
   return result.filePaths[0];
 });
 
-ipcMain.handle('process-document', async (event, { filePath, startWord, endWord, caseSensitive, wholeWord }) => {
+ipcMain.handle('process-document', async (event, { filePath, startWord, endWord, caseSensitive, wholeWord, removeStartWord }) => {
   try {
     // Read the document
     const result = await mammoth.extractRawText({ path: filePath });
@@ -72,6 +72,15 @@ ipcMain.handle('process-document', async (event, { filePath, startWord, endWord,
           // Keep text before the start word
           const beforeStart = line.substring(0, startMatch.index);
           let remainingLine = line.substring(startMatch.index + startMatch[0].length);
+
+          const contentToKeep = removeStartWord ? 
+            beforeStart : 
+            beforeStart + startMatch[0];
+            
+          // Adjust the remaining line if we're keeping the start word
+          remainingLine = removeStartWord ?
+            remainingLine :
+            line.substring(startMatch.index + startMatch[0].length);
           
           // Check if the end word is also in this line
           const endMatch = remainingLine.match(endWordRegex);
