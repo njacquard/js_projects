@@ -43,7 +43,7 @@ ipcMain.handle('select-file', async () => {
   return result.filePaths[0];
 });
 
-ipcMain.handle('process-document', async (event, { filePath, startWord, endWord, caseSensitive, wholeWord, removeStartWord }) => {
+ipcMain.handle('process-document', async (event, { filePath }) => {
   try {
     // Read the document
     const result = await mammoth.extractRawText({ path: filePath });
@@ -57,41 +57,30 @@ ipcMain.handle('process-document', async (event, { filePath, startWord, endWord,
     let currentRangeStart = null;
     let totalRemovedWords = 0;
     
-    // Prepare search terms
-    const startWordRegex = prepareSearchRegex(startWord, caseSensitive, wholeWord);
-    const endWordRegex = prepareSearchRegex(endWord, caseSensitive, wholeWord);
+    // Set fixed start and end phrases
+    const startPhrase = "Selected Answer:";
+    const endPhrase = "Answers:";
     
     lines.forEach((line, lineIndex) => {
       if (!inRemovalRange) {
-        // Check if the start word is in this line
-        const startMatch = line.match(startWordRegex);
-        if (startMatch) {
+        // Check if the start phrase is in this line
+        const startIndex = line.indexOf(startPhrase);
+        if (startIndex !== -1) {
           inRemovalRange = true;
-          currentRangeStart = { line: lineIndex + 1, word: startWord };
+          currentRangeStart = { line: lineIndex + 1, phrase: startPhrase };
           
-          // Keep text before the start word
-          const beforeStart = line.substring(0, startMatch.index);
-          let remainingLine = line.substring(startMatch.index + startMatch[0].length);
+          // Keep text before the start phrase
+          const beforeStart = line.substring(0, startIndex);
+          const remainingLine = line.substring(startIndex + startPhrase.length);
           
-          // If removeStartWord is false, include the start word in beforeStart
-          const contentToKeep = removeStartWord ? 
-            beforeStart : 
-            beforeStart + startMatch[0];
-            
-          // Adjust the remaining line if we're keeping the start word
-          remainingLine = removeStartWord ?
-            remainingLine :
-            line.substring(startMatch.index + startMatch[0].length);
-          
-          // Check if the end word is also in this line
-          const endMatch = remainingLine.match(endWordRegex);
-          if (endMatch) {
+          // Check if the end phrase is also in this line
+          const endIndex = remainingLine.indexOf(endPhrase);
+          if (endIndex !== -1) {
             inRemovalRange = false;
             
-            // Calculate removed content (with or without start word)
-            const removedStartIndex = removeStartWord ? startMatch.index : startMatch.index + startMatch[0].length;
-            const removedContent = line.substring(removedStartIndex, 
-                                                 startMatch.index + startMatch[0].length + endMatch.index + endMatch[0].length);
+            // Calculate removed content
+            const removedContent = line.substring(startIndex, 
+                                                startIndex + startPhrase.length + endIndex);
             totalRemovedWords += countWords(removedContent);
             
             removedRanges.push({
@@ -100,22 +89,34 @@ ipcMain.handle('process-document', async (event, { filePath, startWord, endWord,
               content: removedContent
             });
             
-            // Add remaining content after end word with a new line
-            const afterEnd = remainingLine.substring(endMatch.index + endMatch[0].length);
-            cleanedLines.push(contentToKeep + afterEnd);
+            // Add remaining content after end phrase
+            const afterEnd = remainingLine.substring(endIndex);
+            const processedText = beforeStart + afterEnd;
+            const processedLines = processedText.split('\n');
+            cleanedLines.push(...processedLines);
           } else {
-            // End word not found in this line, keep the content before start word
-            cleanedLines.push(contentToKeep);
+            // End phrase not found in this line
+            const processedText = beforeStart;
+            const processedLines = processedText.split('\n');
+            cleanedLines.push(...processedLines);
           }
         } else {
-          // No start word in this line, keep it as is
-          cleanedLines.push(line);
+          // No start phrase in this line
+          const processedText = line;
+          if (processedText.match(/(?<![\n])(\b\d+\.)/g))
+          {
+            cleanedLines.push('\n');
+          }
+          const processedLines = processedText.split('\n');
+          cleanedLines.push(...processedLines);
         }
       } else {
-        // We're in a removal range, looking for the end word
-        const endMatch = line.match(endWordRegex);
-        if (endMatch) {
+        // We're in a removal range, looking for the end phrase
+        const endIndex = line.indexOf(endPhrase);
+        if (endIndex !== -1) {
           inRemovalRange = false;
+
+          //cleanedLines.push('\n');
           
           // Save the removed content
           removedRanges.push({
@@ -124,12 +125,14 @@ ipcMain.handle('process-document', async (event, { filePath, startWord, endWord,
             content: `[Content from line ${currentRangeStart.line} to ${lineIndex + 1}]`
           });
           
-          // Keep text after the end word and add a new line
-          const afterEnd = line.substring(endMatch.index + endMatch[0].length);
-          cleanedLines.push(afterEnd);
+          // Keep text after the end phrase with smart line breaks
+          const afterEnd = line.substring(endIndex);
+          const processedText = afterEnd;
+          const processedLines = processedText.split('\n');
+          cleanedLines.push(...processedLines);
           
           // Count removed words
-          totalRemovedWords += countWords(line.substring(0, endMatch.index + endWord.length));
+          totalRemovedWords += countWords(line.substring(0, endIndex));
         } else {
           // Still in removal range, continue removing
           totalRemovedWords += countWords(line);
@@ -137,7 +140,7 @@ ipcMain.handle('process-document', async (event, { filePath, startWord, endWord,
       }
     });
     
-    // If we're still in a removal range at the end, it means we never found the end word
+    // If we're still in a removal range at the end, it means we never found the end phrase
     if (inRemovalRange) {
       removedRanges.push({
         startLine: currentRangeStart.line,
@@ -146,21 +149,20 @@ ipcMain.handle('process-document', async (event, { filePath, startWord, endWord,
       });
     }
 
-    // Create new document with line breaks
+    // Create new document with proper line breaks
     const doc = new docx.Document({
       sections: [{
         properties: {},
-        children: cleanedLines.filter(line => line !== '').map(line => 
-          new docx.Paragraph({
-            spacing: {
-              before: 200
-            },
-            children: [new docx.TextRun(line)],
-            spacing: {
-              after: 200 // Add space after each paragraph
-            }
-          })
-        )
+        children: cleanedLines
+          .filter(line => line !== '')
+          .map(line => 
+            new docx.Paragraph({
+              children: [new docx.TextRun(line.trim())],
+              spacing: {
+                after: 240  // Add space after each paragraph
+              }
+            })
+          )
       }]
     });
 
@@ -182,16 +184,6 @@ ipcMain.handle('process-document', async (event, { filePath, startWord, endWord,
     throw new Error(`Processing failed: ${error.message}`);
   }
 });
-
-function prepareSearchRegex(word, caseSensitive, wholeWord) {
-  let pattern = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // Escape regex special chars
-  
-  if (wholeWord) {
-    pattern = `\\b${pattern}\\b`;
-  }
-  
-  return new RegExp(pattern, caseSensitive ? 'g' : 'gi');
-}
 
 function countWords(str) {
   return str.split(/\s+/).filter(word => word.length > 0).length;
