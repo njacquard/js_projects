@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Boncar's Study Guide Formatter</title>
+  <title>Question Answer Content Remover</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -47,60 +47,6 @@
       background-color: #f9f9f9;
       font-size: 14px;
     }
-    .input-group {
-      margin: 10px 0 20px 0;
-      padding: 15px;
-      background-color: #f9f9fb;
-      border-radius: 8px;
-    }
-    .input-row {
-      display: flex;
-      gap: 15px;
-      margin-bottom: 15px;
-    }
-    .input-field {
-      flex: 1;
-    }
-    label {
-      display: block;
-      margin-bottom: 6px;
-      font-weight: 500;
-      font-size: 14px;
-      color: #444;
-    }
-    input[type="text"] {
-      width: 100%;
-      padding: 10px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-      font-size: 14px;
-      transition: border-color 0.2s;
-    }
-    input[type="text"]:focus {
-      border-color: #007AFF;
-      outline: none;
-      box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
-    }
-    .checkbox-group {
-      display: flex;
-      gap: 20px;
-      margin-top: 15px;
-      flex-wrap: wrap;
-    }
-    .checkbox-label {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      cursor: pointer;
-      font-size: 14px;
-      color: #444;
-      user-select: none;
-    }
-    .checkbox-label input[type="checkbox"] {
-      width: 16px;
-      height: 16px;
-      accent-color: #007AFF;
-    }
     button {
       padding: 10px 18px;
       background-color: #007AFF;
@@ -115,23 +61,9 @@
     button:hover {
       background-color: #0062cc;
     }
-    button:active {
-      background-color: #004999;
-    }
     button:disabled {
       background-color: #cccccc;
       cursor: not-allowed;
-    }
-    .button-group {
-      display: flex;
-      gap: 12px;
-    }
-    button.secondary {
-      background-color: #e0e0e0;
-      color: #444;
-    }
-    button.secondary:hover {
-      background-color: #d0d0d0;
     }
     .status {
       margin-top: 20px;
@@ -151,18 +83,13 @@
       color: #C62828;
       border-left: 4px solid #C62828;
     }
-    .help-text {
-      font-size: 12px;
-      color: #666;
-      margin-top: 4px;
-    }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h1>Word Document Range Remover</h1>
-      <p class="description">Remove content between specified words in a Word document</p>
+      <h1>Question Answer Content Remover</h1>
+      <p class="description">Remove content between "Selected Answer" and "Answers" in a Word document</p>
     </div>
     
     <div class="file-section">
@@ -170,43 +97,7 @@
       <button onclick="selectFile()">Browse</button>
     </div>
 
-    <div class="input-group">
-      <div class="input-row">
-        <div class="input-field">
-          <label for="startWord">Start Word:</label>
-          <input type="text" id="startWord" placeholder="Enter the word to start removal from" value="Selected Answer">
-          <div class="help-text">The word that marks the beginning of content to remove</div>
-        </div>
-        
-        <div class="input-field">
-          <label for="endWord">End Word:</label>
-          <input type="text" id="endWord" placeholder="Enter the word to end removal at" value="Answers">
-          <div class="help-text">The word that marks the end of content to remove</div>
-        </div>
-      </div>
-      
-      <div class="checkbox-group">
-        <label class="checkbox-label">
-          <input type="checkbox" id="caseSensitive">
-          Case sensitive
-        </label>
-        
-        <label class="checkbox-label">
-          <input type="checkbox" id="wholeWord">
-          Match whole words only
-        </label>
-        
-        <label class="checkbox-label">
-          <input type="checkbox" id="removeStartWord">
-          Remove start word
-        </label>
-      </div>
-    </div>
-
-    <div class="button-group">
-      <button onclick="processDocument()" id="processBtn">Process Document</button>
-      <button onclick="clearFields()" class="secondary">Clear</button>
-    </div>
+    <button onclick="processDocument()" id="processBtn" disabled>Process Document</button>
 
     <div id="status" class="status" style="display: none;"></div>
   </div>
@@ -219,7 +110,7 @@
         const filePath = await ipcRenderer.invoke('select-file');
         if (filePath) {
           document.getElementById('filePath').value = filePath;
-          updateProcessButtonState();
+          document.getElementById('processBtn').disabled = false;
         }
       } catch (error) {
         showStatus('Error selecting file: ' + error.message, true);
@@ -228,33 +119,19 @@
 
     async function processDocument() {
       const filePath = document.getElementById('filePath').value;
-      const startWord = document.getElementById('startWord').value;
-      const endWord = document.getElementById('endWord').value;
-      const caseSensitive = document.getElementById('caseSensitive').checked;
-      const wholeWord = document.getElementById('wholeWord').checked;
-      const removeStartWord = document.getElementById('removeStartWord').checked;
 
-      if (!filePath || !startWord || !endWord) {
-        showStatus('Please select a document and specify both start and end words', true);
+      if (!filePath) {
+        showStatus('Please select a document', true);
         return;
       }
 
-      // Disable button during processing
       const processBtn = document.getElementById('processBtn');
       processBtn.disabled = true;
       processBtn.textContent = 'Processing...';
       
       try {
-        const result = await ipcRenderer.invoke('process-document', {
-          filePath,
-          startWord,
-          endWord,
-          caseSensitive,
-          wholeWord,
-          removeStartWord
-        });
-
-        const fileName = result.newFilePath.split(/[/\\]/).pop(); // Handle both Unix and Windows paths
+        const result = await ipcRenderer.invoke('process-document', { filePath });
+        const fileName = result.newFilePath.split(/[/\\]/).pop();
         
         showStatus(
           `Processing complete!\n\n` +
@@ -262,28 +139,15 @@
           `• Total document lines: ${result.totalLines}\n` +
           `• Content ranges removed: ${result.removedRanges}\n` +
           `• Approximate words removed: ${result.totalRemovedWords}\n` +
-          `• Start word removal: ${removeStartWord ? 'Yes' : 'No'}\n` +
           `• New document saved as: ${fileName}`,
           false
         );
       } catch (error) {
         showStatus('Error: ' + error.message, true);
       } finally {
-        // Re-enable button
         processBtn.disabled = false;
         processBtn.textContent = 'Process Document';
       }
-    }
-
-    function clearFields() {
-      document.getElementById('filePath').value = '';
-      document.getElementById('startWord').value = '';
-      document.getElementById('endWord').value = '';
-      document.getElementById('caseSensitive').checked = false;
-      document.getElementById('wholeWord').checked = false;
-      document.getElementById('removeStartWord').checked = true;
-      document.getElementById('status').style.display = 'none';
-      updateProcessButtonState();
     }
 
     function showStatus(message, isError) {
@@ -293,20 +157,6 @@
       statusEl.className = 'status ' + (isError ? 'error' : 'success');
       statusEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
-    
-    function updateProcessButtonState() {
-      const filePath = document.getElementById('filePath').value;
-      const startWord = document.getElementById('startWord').value;
-      const endWord = document.getElementById('endWord').value;
-      document.getElementById('processBtn').disabled = !filePath || !startWord || !endWord;
-    }
-    
-    // Add event listeners for input fields
-    document.getElementById('startWord').addEventListener('input', updateProcessButtonState);
-    document.getElementById('endWord').addEventListener('input', updateProcessButtonState);
-    
-    // Initialize button state
-    updateProcessButtonState();
   </script>
 </body>
 </html>
